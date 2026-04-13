@@ -31,6 +31,7 @@ import com.meteordevelopments.duels.util.inventory.InventoryUtil;
 import com.meteordevelopments.duels.util.validator.ValidatorUtil;
 import com.meteordevelopments.duels.api.folialib.task.WrappedTask;
 import org.bukkit.*;
+import org.bukkit.block.Block;
 import org.bukkit.entity.EntityType;
 import org.bukkit.entity.Firework;
 import org.bukkit.entity.Player;
@@ -947,6 +948,82 @@ public class DuelManager implements Loadable {
             lang.sendMessage(player, "DUEL.prevent.inventory-open");
         }
 
+        // Thx: https://github.com/arkflame/FlamePearls
+        @EventHandler(priority = EventPriority.HIGHEST, ignoreCancelled = true)
+        public void onEnderPearlTeleport(PlayerTeleportEvent event) {
+            if (event.getCause() != TeleportCause.ENDER_PEARL)
+                return;
+            if (!arenaManager.isInMatch(event.getPlayer()))
+                return;
+
+            Location dest = event.getTo();
+            if (isSafeForPlayer(dest))
+                return;
+
+            Location safe = findSafeLocation(dest);
+            if (!isSafeForPlayer(safe)) {
+                event.setCancelled(true);
+                event.getPlayer().sendMessage(com.meteordevelopments.duels.util.StringUtil.color("&cYour ender pearl landed inside a block with no safe landing spot."));
+                return;
+            }
+            event.setTo(safe);
+        }
+    }
+
+    private static final double[] SIDE_OFFSETS = {0.0, -0.5, 0.5};
+
+    private static boolean isSafeForPlayer(final Location loc) {
+        Block feet = loc.getBlock();
+        Block head = loc.clone().add(0, 1, 0).getBlock();
+        return feet.isPassable() && head.isPassable();
+    }
+
+    private static boolean isPartialBlock(Block block) {
+        if (block.isPassable())
+            return false;
+        String name = block.getType().name();
+        return name.endsWith("_SLAB") || name.endsWith("_STAIRS") || name.endsWith("_CARPET") || name.equals("SNOW");
+    }
+
+    private static Location adjustForPartialBlock(Location loc) {
+        Block floor = loc.clone().subtract(0, 1, 0).getBlock();
+        if (isPartialBlock(floor))
+            return loc.clone().add(0, 0.5, 0);
+        return loc;
+    }
+
+    private static Location findSafeLocation(Location dest) {
+        Location best = null;
+        double bestDist = Double.MAX_VALUE;
+
+        for (int dx = -1; dx <= 1; dx++) {
+            for (int dy = -1; dy <= 1; dy++) {
+                for (int dz = -1; dz <= 1; dz++) {
+                    for (final double sx: SIDE_OFFSETS) {
+                        for (final double sz: SIDE_OFFSETS) {
+                            Location candidate = dest.clone().add(dx + sx, dy, dz + sz);
+                            if (!isSafeForPlayer(candidate))
+                                continue;
+                            Location adjusted = adjustForPartialBlock(candidate);
+                            double dist = dest.distanceSquared(adjusted);
+                            if (dist < bestDist) {
+                                bestDist = dist;
+                                best = adjusted;
+                            }
+                        }
+                    }
+                }
+            }
+        }
+
+        if (best != null)
+            return best;
+
+        final Location shiftedDown = dest.clone().subtract(0, 1, 0);
+        if (isSafeForPlayer(shiftedDown))
+            return shiftedDown;
+
+        return dest;
     }
     
     /**
