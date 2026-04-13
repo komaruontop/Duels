@@ -25,6 +25,7 @@ import com.meteordevelopments.duels.core.queue.QueueManager;
 import com.meteordevelopments.duels.setting.Settings;
 import com.meteordevelopments.duels.core.teleport.Teleport;
 import com.meteordevelopments.duels.util.compat.CompatUtil;
+import com.meteordevelopments.duels.util.compat.Identifiers;
 import com.meteordevelopments.duels.util.compat.Titles;
 import com.meteordevelopments.duels.util.inventory.InventoryUtil;
 import com.meteordevelopments.duels.util.validator.ValidatorUtil;
@@ -631,6 +632,10 @@ public class DuelManager implements Loadable {
                     // Load default kit
                     kit.equip(player);
                 }
+
+                // Every kit are marked
+                if (config.isKitGuardEmbedOwner())
+                    Identifiers.tagOwnerInInventory(player);
             }
 
             if (config.isStartCommandsEnabled() && !(match.getSource() == null && config.isStartCommandsQueueOnly())) {

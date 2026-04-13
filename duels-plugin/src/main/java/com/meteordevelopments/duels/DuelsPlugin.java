@@ -10,6 +10,7 @@ import com.meteordevelopments.duels.party.PartyManagerImpl;
 import com.meteordevelopments.duels.util.*;
 import com.meteordevelopments.duels.core.validator.ValidatorManager;
 import com.meteordevelopments.duels.api.folialib.FoliaLib;
+import com.meteordevelopments.duels.util.kitguard.KitGuardManager;
 import lombok.Getter;
 import com.meteordevelopments.duels.api.Duels;
 import com.meteordevelopments.duels.api.command.SubCommand;
@@ -153,6 +154,10 @@ public class DuelsPlugin extends JavaPlugin implements Duels, LogSource {
         long last = start;
         logManager.debug("onDisable start -> " + start + "\n");
         unload();
+        // Unload KitGuard
+        KitGuardManager guard = KitGuardManager.getInstance();
+        if (guard != null)
+            guard.shutdown();
         logManager.debug("unload done (took " + Math.abs(last - (last = System.currentTimeMillis())) + "ms)");
         Log.clearSources();
         logManager.debug("Log#clearSources done (took " + Math.abs(last - System.currentTimeMillis()) + "ms)");

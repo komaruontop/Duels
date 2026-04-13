@@ -4,6 +4,7 @@ import com.meteordevelopments.duels.DuelsPlugin;
 import com.meteordevelopments.duels.Permissions;
 import com.meteordevelopments.duels.command.BaseCommand;
 import com.meteordevelopments.duels.command.commands.duels.subcommands.*;
+import com.meteordevelopments.duels.command.commands.duels.subcommands.KitguardCommand;
 import com.meteordevelopments.duels.config.CommandsConfig.CommandSettings;
 import org.bukkit.command.CommandSender;
 import java.util.Objects;
@@ -42,7 +43,8 @@ public class DuelsCommand extends BaseCommand {
                 new PlaysoundCommand(plugin),
                 new ReloadCommand(plugin),
                 new DisableCommand(plugin),
-                new EnableCommand(plugin)
+                new EnableCommand(plugin),
+                new KitguardCommand(plugin) // My KitGuard
         );
     }
 

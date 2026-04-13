@@ -116,6 +116,22 @@ public class Config extends AbstractConfiguration<DuelsPlugin> {
     private boolean preventInventoryOpen;
     @Getter
     private boolean protectKitItems;
+    @Getter // New config options
+    private boolean kitGuardEmbedOwner;
+    @Getter
+    private boolean kitGuardLogDetections;
+    @Getter
+    private boolean kitGuardAlertAdmins;
+    @Getter
+    private boolean kitGuardBlockDrop;
+    @Getter
+    private boolean kitGuardBlockOffhand;
+    @Getter
+    private boolean kitGuardBlockArmorStand;
+    @Getter
+    private boolean kitGuardBlockCraft;
+    @Getter
+    private boolean kitGuardBlockChestTransfer;
     @Getter
     private boolean removeEmptyBottle;
     @Getter
@@ -392,6 +408,14 @@ public class Config extends AbstractConfiguration<DuelsPlugin> {
         projectileHitMessageTypes = configuration.getStringList("duel.projectile-hit-message.types");
         preventInventoryOpen = configuration.getBoolean("duel.prevent-inventory-open", true);
         protectKitItems = configuration.getBoolean("duel.protect-kit-items", true);
+        kitGuardEmbedOwner = configuration.getBoolean("duel.kit-item-guard.embed-owner-data", true); // Default values
+        kitGuardLogDetections = configuration.getBoolean("duel.kit-item-guard.log-detections", true);
+        kitGuardAlertAdmins = configuration.getBoolean("duel.kit-item-guard.alert-admins", true);
+        kitGuardBlockDrop = configuration.getBoolean("duel.kit-item-guard.block-drop", true);
+        kitGuardBlockOffhand = configuration.getBoolean("duel.kit-item-guard.block-offhand-swap", true);
+        kitGuardBlockArmorStand = configuration.getBoolean("duel.kit-item-guard.block-armor-stand", true);
+        kitGuardBlockCraft = configuration.getBoolean("duel.kit-item-guard.block-craft", true);
+        kitGuardBlockChestTransfer= configuration.getBoolean("duel.kit-item-guard.block-chest-transfer", true);
         removeEmptyBottle = configuration.getBoolean("duel.remove-empty-bottle", true);
         preventTpToMatchPlayers = configuration.getBoolean("duel.prevent-teleport-to-match-players", true);
         forceAllowCombat = configuration.getBoolean("duel.force-allow-combat", true);
