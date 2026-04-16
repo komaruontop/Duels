@@ -356,7 +356,7 @@ public class ArenaImpl extends BaseButton implements Arena {
 
     public Player first() {
         if (!isUsed()) return null;
-        final java.util.Set<org.bukkit.entity.Player> alive = match.getAlivePlayers();
+        final Set<Player> alive = match.getAlivePlayers();
         return alive.isEmpty() ? null : alive.iterator().next();
     }
 
