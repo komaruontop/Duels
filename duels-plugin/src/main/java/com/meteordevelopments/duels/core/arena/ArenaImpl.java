@@ -249,6 +249,9 @@ public class ArenaImpl extends BaseButton implements Arena {
     }
 
     public void endMatch(final UUID winner, final UUID loser, final Reason reason) {
+        if (!isUsed()) {
+            return; // Match already ended — guard against double endgame
+        }
         spectateManager.stopSpectating(this);
 
         final MatchEndEvent event = new MatchEndEvent(match, winner, loser, reason);
@@ -352,7 +355,9 @@ public class ArenaImpl extends BaseButton implements Arena {
     }
 
     public Player first() {
-        return isUsed() ? match.getAlivePlayers().iterator().next() : null;
+        if (!isUsed()) return null;
+        final java.util.Set<org.bukkit.entity.Player> alive = match.getAlivePlayers();
+        return alive.isEmpty() ? null : alive.iterator().next();
     }
 
     @Override

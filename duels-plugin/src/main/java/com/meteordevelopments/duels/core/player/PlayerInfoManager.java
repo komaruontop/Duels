@@ -31,6 +31,7 @@ import org.bukkit.event.player.PlayerRespawnEvent;
 import java.io.*;
 import java.nio.file.Files;
 import java.util.HashMap;
+import java.util.List;
 import java.util.Map;
 import java.util.Objects;
 import java.util.UUID;
@@ -114,13 +115,21 @@ public class PlayerInfoManager implements Loadable {
 
         // If lobby is not found or invalid, use the default world's spawn location for lobby.
         if (lobby == null || lobby.getWorld() == null) {
-            final World world = Bukkit.getWorlds().getFirst();
+            final List<World> worlds = Bukkit.getWorlds();
+            if (worlds.isEmpty()) {
+                throw new IOException("No worlds are loaded — cannot set a default lobby location. Set lobby with /duels setlobby.");
+            }
+            final World world = worlds.getFirst();
             this.lobby = world.getSpawnLocation();
             Log.warn(this, String.format(ERROR_LOBBY_DEFAULT, world.getName()));
         }
 
         if (kitLobby == null || kitLobby.getWorld() == null) {
-            final World world = Bukkit.getWorlds().getFirst();
+            final List<World> worlds = Bukkit.getWorlds();
+            if (worlds.isEmpty()) {
+                throw new IOException("No worlds are loaded — cannot set a default kit-lobby location. Set lobby with /duels setlobby.");
+            }
+            final World world = worlds.getFirst();
             this.kitLobby = world.getSpawnLocation();
             Log.warn(this, String.format(ERROR_LOBBY_DEFAULT, world.getName()));
         }

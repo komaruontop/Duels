@@ -2,6 +2,8 @@ package com.meteordevelopments.duels.core.match;
 
 import java.util.*;
 import java.util.Map.Entry;
+import java.util.concurrent.ConcurrentHashMap;
+import java.util.concurrent.CopyOnWriteArrayList;
 import java.util.stream.Collectors;
 
 import com.meteordevelopments.duels.DuelsPlugin;
@@ -47,11 +49,11 @@ public class DuelMatch implements Match {
     private int currentRound = 0;
     private final Map<Player, Integer> roundWins = new HashMap<>();
 
-    public HashMap<Location, BlockData> brokenBlocks = new HashMap<>();
-    public List<Block> placedBlocks = new ArrayList<>();
-    public List<Block> liquids = new ArrayList<>();
-    public List<Entity> placedEntities = new ArrayList<>();
-    public List<Item> droppedItems = new ArrayList<>();
+    public final Map<Location, BlockData> brokenBlocks = new ConcurrentHashMap<>();
+    public final List<Block> placedBlocks = new CopyOnWriteArrayList<>();
+    public final List<Block> liquids = new CopyOnWriteArrayList<>();
+    public final List<Entity> placedEntities = new CopyOnWriteArrayList<>();
+    public final List<Item> droppedItems = new CopyOnWriteArrayList<>();
 
     // Default value for players is false, which is set to true if player is killed in the match.
     private final Map<Player, Boolean> players = new HashMap<>();

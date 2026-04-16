@@ -160,7 +160,7 @@ public class RequestManager implements Loadable, Listener {
         }
 
         if (System.currentTimeMillis() - request.getCreation() >= config.getExpiration() * 1000L) {
-            cached.remove(target.getUniqueId());
+            // Request already removed above — nothing to clean up
             return null;
         }
 

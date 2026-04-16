@@ -233,7 +233,9 @@ public class DuelManager implements Loadable {
                     }
                 }
 
-                arena.endMatch(winners.iterator().next().getUniqueId(), losers.iterator().next().getUniqueId(), Reason.OPPONENT_DEFEAT);
+                final UUID winnerUuid = winners.isEmpty() ? null : winners.iterator().next().getUniqueId();
+                final UUID loserUuid = losers.isEmpty() ? null : losers.iterator().next().getUniqueId();
+                arena.endMatch(winnerUuid, loserUuid, Reason.OPPONENT_DEFEAT);
             }, config.getTeleportDelay() * 20L);
         }, 1L);
     }
@@ -822,8 +824,12 @@ public class DuelManager implements Loadable {
                 return;
             }
 
+            final Set<Player> alivePlayers = match.getAlivePlayers();
+            if (alivePlayers.isEmpty()) {
+                return; // All players dead simultaneously — tie is handled inside handleMatchEnd via arena.size() == 0
+            }
             final Location deadLocation = player.getEyeLocation().clone();
-            handleMatchEnd(match, arena, player, deadLocation, match.getAlivePlayers().iterator().next());
+            handleMatchEnd(match, arena, player, deadLocation, alivePlayers.iterator().next());
         }
 
         @EventHandler(ignoreCancelled = true)
@@ -1050,10 +1056,20 @@ public class DuelManager implements Loadable {
         
         if (matcher.find()) {
             // Extract delay value in milliseconds
-            long delayMs = Long.parseLong(matcher.group(1));
+            long delayMs;
+            try {
+                delayMs = Long.parseLong(matcher.group(1));
+                if (delayMs < 0 || delayMs > 3_600_000L) { // clamp: max 1 hour
+                    Log.warn(this, "Delay value out of range (" + delayMs + "ms) in command, clamping to 0: " + command);
+                    delayMs = 0;
+                }
+            } catch (NumberFormatException e) {
+                Log.warn(this, "Invalid delay value in command, executing immediately: " + command);
+                delayMs = 0;
+            }
             // Remove the {delay:x} placeholder from the command
             String cleanCommand = matcher.replaceAll("").trim();
-            
+
             // Convert milliseconds to ticks (1 tick = 50ms)
             long delayTicks = delayMs / 50;
             

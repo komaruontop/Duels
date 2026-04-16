@@ -53,6 +53,10 @@ public class PartyDuelMatch extends DuelMatch {
         super.addPlayer(player);
 
         final Party party = partyManager.get(player);
+        if (party == null) {
+            // Player left their party between queue confirmation and match start — skip mapping
+            return;
+        }
         playerToParty.put(player, party);
         partyToPlayers.put(party, player);
 

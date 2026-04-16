@@ -255,6 +255,8 @@ public class SpectateManagerImpl implements Loadable, SpectateManager {
             final Player player = Bukkit.getPlayer(spectator.getUuid());
 
             if (player == null) {
+                // Spectator went offline before match ended — clean up dangling UUID entry
+                SpectateManagerImpl.this.spectators.remove(spectator.getUuid());
                 return;
             }
 
@@ -278,6 +280,7 @@ public class SpectateManagerImpl implements Loadable, SpectateManager {
         return spectators.values()
                 .stream()
                 .map(spectator -> Bukkit.getPlayer(spectator.getUuid()))
+                .filter(Objects::nonNull)
                 .collect(Collectors.toList());
     }
 
