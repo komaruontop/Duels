@@ -51,6 +51,10 @@ public class ArenaImpl extends BaseButton implements Arena {
     private boolean removed;
     @Setter
     private DuelCountdown countdown;
+    @Setter
+    private Location minBound;
+    @Setter
+    private Location maxBound;
 
     public ArenaImpl(final DuelsPlugin plugin, final String name, final boolean disabled) {
         super(plugin, ItemBuilder
@@ -179,6 +183,31 @@ public class ArenaImpl extends BaseButton implements Arena {
     @Override
     public boolean setDisabled(final boolean disabled) {
         return setDisabled(null, disabled);
+    }
+
+    public void setBound(boolean isMin, Location location) {
+        if (isMin)
+            this.minBound = location.clone();
+        else
+            this.maxBound = location.clone();
+        arenaManager.saveArenas();
+    }
+
+    public boolean hasBounds() {
+        return minBound != null && maxBound != null;
+    }
+
+    public boolean isInBounds(Location loc) {
+        if (!hasBounds())
+            return true;
+        if (!loc.getWorld().equals(minBound.getWorld()))
+            return false;
+        return loc.getX() >= Math.min(minBound.getX(), maxBound.getX())
+            && loc.getX() <= Math.max(minBound.getX(), maxBound.getX())
+            && loc.getY() >= Math.min(minBound.getY(), maxBound.getY())
+            && loc.getY() <= Math.max(minBound.getY(), maxBound.getY())
+            && loc.getZ() >= Math.min(minBound.getZ(), maxBound.getZ())
+            && loc.getZ() <= Math.max(minBound.getZ(), maxBound.getZ());
     }
 
     public boolean isBoundless() {

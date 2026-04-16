@@ -79,6 +79,7 @@ public class DuelManager implements Loadable {
     private MyPetHook myPet;
 
     private WrappedTask durationCheckTask;
+    private WrappedTask boundsCheckTask;
 
     public DuelManager(final DuelsPlugin plugin) {
         this.plugin = plugin;
@@ -297,6 +298,25 @@ public class DuelManager implements Loadable {
         this.mcMMO = plugin.getHookManager().getHook(McMMOHook.class);
         this.myPet = plugin.getHookManager().getHook(MyPetHook.class);
 
+        this.boundsCheckTask = plugin.doSyncRepeat(() -> {
+            for (ArenaImpl arena: arenaManager.getArenasImpl()) {
+                if (!arena.isUsed() || !arena.hasBounds())
+                    continue;
+                DuelMatch match = arena.getMatch();
+                if (match != null) {
+                    for (Player player: new ArrayList<>(match.getAlivePlayers())) {
+                        if (arena.isInBounds(player.getLocation()))
+                            continue;
+                        Location spawn = match.getSpawnPoint(player);
+                        if (spawn == null)
+                            continue;
+                        teleport.tryTeleport(player, spawn);
+                        player.sendMessage(StringUtil.color("&cYou left the arena boundaries!"));
+                    }
+                }
+            }
+        }, 1L, 20L);
+
         if (config.getMaxDuration() > 0) {
             this.durationCheckTask = plugin.doSyncRepeat(() -> {
                 for (final ArenaImpl arena : arenaManager.getArenasImpl()) {
@@ -325,6 +345,8 @@ public class DuelManager implements Loadable {
 
     @Override
     public void handleUnload() {
+        plugin.cancelTask(boundsCheckTask);
+
         if (config.getMaxDuration() > 0) {
             plugin.cancelTask(durationCheckTask);
         }
@@ -666,6 +688,7 @@ public class DuelManager implements Loadable {
                 mcMMO.disableSkills(player);
             }
 
+            match.setSpawnPoint(player, location);
             arena.add(player);
         }
     }

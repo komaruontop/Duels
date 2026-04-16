@@ -44,7 +44,8 @@ public class DuelsCommand extends BaseCommand {
                 new ReloadCommand(plugin),
                 new DisableCommand(plugin),
                 new EnableCommand(plugin),
-                new KitguardCommand(plugin) // My KitGuard
+                new KitguardCommand(plugin), // My KitGuard
+                new SetboundsCommand(plugin)
         );
     }
 

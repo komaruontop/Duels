@@ -55,6 +55,7 @@ public class DuelMatch implements Match {
 
     // Default value for players is false, which is set to true if player is killed in the match.
     private final Map<Player, Boolean> players = new HashMap<>();
+    private final Map<UUID, Location> spawnPoints = new HashMap<>();
 
     public DuelMatch(final DuelsPlugin plugin, final ArenaImpl arena, final KitImpl kit, final Map<UUID, List<ItemStack>> items, final int bet, final Queue source) {
         this.partyManager = plugin.getPartyManager();
@@ -84,6 +85,14 @@ public class DuelMatch implements Match {
 
     public void addPlayer(final Player player) {
         players.put(player, false);
+    }
+
+    public void setSpawnPoint(Player player, Location location) {
+        spawnPoints.put(player.getUniqueId(), location.clone());
+    }
+
+    public Location getSpawnPoint(Player player) {
+        return spawnPoints.get(player.getUniqueId());
     }
 
     public void markAsDead(final Player player) {

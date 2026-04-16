@@ -14,6 +14,8 @@ public class ArenaData {
     private ItemData displayed;
     private Set<String> kits = new HashSet<>();
     private Map<Integer, LocationData> positions = new HashMap<>();
+    private LocationData minBound;
+    private LocationData maxBound;
 
     private ArenaData() {
     }
@@ -26,6 +28,10 @@ public class ArenaData {
         arena.getKits().forEach(kit -> this.kits.add(kit.getName()));
         arena.getPositions().entrySet()
                 .stream().filter(entry -> entry.getValue().getWorld() != null).forEach(entry -> positions.put(entry.getKey(), LocationData.fromLocation(entry.getValue())));
+        if (arena.getMinBound() != null)
+            this.minBound = LocationData.fromLocation(arena.getMinBound());
+        if (arena.getMaxBound() != null)
+            this.maxBound = LocationData.fromLocation(arena.getMaxBound());
     }
 
     public ArenaImpl toArena(final DuelsPlugin plugin) {
@@ -42,6 +48,10 @@ public class ArenaData {
         // Manually bind kits and add locations to prevent saveArenas being called
         kits.stream().map(name -> plugin.getKitManager().get(name)).filter(Objects::nonNull).forEach(kit -> arena.getKits().add(kit));
         positions.forEach((key, value) -> arena.getPositions().put(key, value.toLocation()));
+        if (this.minBound != null)
+            arena.setMinBound(minBound.toLocation());
+        if (this.maxBound != null)
+            arena.setMaxBound(maxBound.toLocation());
 
         arena.refreshGui(arena.isAvailable());
         
