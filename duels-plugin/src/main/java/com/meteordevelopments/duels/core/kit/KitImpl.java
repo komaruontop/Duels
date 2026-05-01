@@ -9,6 +9,7 @@ import com.meteordevelopments.duels.api.event.kit.KitEquipEvent;
 import com.meteordevelopments.duels.api.kit.Kit;
 import com.meteordevelopments.duels.gui.BaseButton;
 import com.meteordevelopments.duels.setting.Settings;
+import com.meteordevelopments.duels.util.compat.Identifiers;
 import com.meteordevelopments.duels.util.inventory.InventoryUtil;
 import com.meteordevelopments.duels.util.inventory.ItemBuilder;
 import org.bukkit.Bukkit;
@@ -102,8 +103,25 @@ public class KitImpl extends BaseButton implements Kit {
         }
 
         InventoryUtil.fillFromMap(player.getInventory(), items);
+        tagInventory(player);
         player.updateInventory();
         return true;
+    }
+
+    private void tagInventory(Player player) {
+        ItemStack[] contents = player.getInventory().getContents();
+        for (int i = 0; i < contents.length; i++) {
+            ItemStack item = contents[i];
+            if (item == null || item.getType() == Material.AIR)
+                continue;
+            Identifiers.addIdentifier(item);
+        }
+        ItemStack[] armor = player.getInventory().getArmorContents();
+        for (ItemStack item: armor) {
+            if (item == null || item.getType() == Material.AIR)
+                continue;
+            Identifiers.addIdentifier(item);
+        }
     }
 
     @Override

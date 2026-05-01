@@ -234,6 +234,33 @@ duel:
   # default: true
   protect-kit-items: true
 
+  # Fine-grained control over kit-item leak protection (protect-kit-items must be true).
+  kit-item-guard:
+    # Embed the owner's UUID/name into every kit item so violations can be attributed.
+    # default: true
+    embed-owner-data: true
+    # Log every kit-item violation to console and to plugins/Duels/logs/kitguard-DATE.log.
+    # default: true
+    log-detections: true
+    # Broadcast kit-item violations to all online admins (duels.admin permission).
+    # default: true
+    alert-admins: true
+    # Block players from dropping kit items.
+    # default: true
+    block-drop: true
+    # Block players from swapping kit items to the off-hand slot.
+    # default: true
+    block-offhand-swap: true
+    # Block players from placing kit items on armor stands.
+    # default: true
+    block-armor-stand: true
+    # Block kit items from being used in crafting recipes.
+    # default: true
+    block-craft: true
+    # Block kit items from being moved into chests/other containers (includes hoppers).
+    # default: true
+    block-chest-transfer: true
+
   # If set to 'true', the empty bottle will be automatically removed when a potion is consumed.
   # NOTE: Only active for players in a duel!
   # default: true

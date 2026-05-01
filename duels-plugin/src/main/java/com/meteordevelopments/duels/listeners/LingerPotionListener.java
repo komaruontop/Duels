@@ -36,27 +36,34 @@ public class LingerPotionListener {
 
         @EventHandler
         public void on(final AreaEffectCloudApplyEvent event) {
-            if (!(event.getEntity().getSource() instanceof Player)) {
+            if (!(event.getEntity().getSource() instanceof Player source))
                 return;
-            }
 
-            final Player source = (Player) event.getEntity().getSource();
-
-            final ArenaImpl arena = arenaManager.get(source);
+            ArenaImpl arena = arenaManager.get(source);
             if (arena == null || !(arena.getMatch() instanceof TeamDuelMatch teamMatch)) {
-                // Still remove spectators regardless
-                event.getAffectedEntities().removeIf(entity -> entity instanceof Player && spectateManager.isSpectating((Player) entity));
+                String arenaName = arena != null ? arena.getName() : null;
+                event.getAffectedEntities().removeIf(entity -> {
+                    if (!(entity instanceof Player p))
+                        return false;
+                    if (spectateManager.isSpectating(p))
+                        return true;
+                    if (arenaName == null || p.equals(source))
+                        return false;
+                    ArenaImpl pArena = arenaManager.get(p);
+                    return pArena == null || !arenaName.equals(pArena.getName());
+                });
                 return;
             }
 
             final TeamDuelMatch.Team sourceTeam = teamMatch.getPlayerToTeam().get(source);
 
-            // Remove spectators and teammates from harmful lingering clouds
             event.getAffectedEntities().removeIf(entity -> {
                 if (entity instanceof Player p) {
-                    if (spectateManager.isSpectating(p)) {
+                    if (spectateManager.isSpectating(p))
                         return true;
-                    }
+                    ArenaImpl pArena = arenaManager.get(p);
+                    if (pArena == null || !arena.getName().equals(pArena.getName()))
+                        return true;
                     final TeamDuelMatch.Team affectedTeam = teamMatch.getPlayerToTeam().get(p);
                     if (affectedTeam != null && affectedTeam.equals(sourceTeam)) {
                         // Only filter for harmful clouds; check effects on cloud

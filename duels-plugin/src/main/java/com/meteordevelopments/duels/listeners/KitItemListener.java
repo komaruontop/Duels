@@ -12,15 +12,19 @@ import com.meteordevelopments.duels.util.kitguard.KitGuardManager;
 import org.bukkit.Bukkit;
 import org.bukkit.Location;
 import org.bukkit.Material;
+import org.bukkit.block.Container;
 import org.bukkit.entity.Item;
+import org.bukkit.entity.ItemFrame;
 import org.bukkit.entity.Player;
 import org.bukkit.event.EventHandler;
 import org.bukkit.event.EventPriority;
 import org.bukkit.event.Listener;
+import org.bukkit.event.block.BlockDispenseEvent;
 import org.bukkit.event.block.BlockPlaceEvent;
 import org.bukkit.event.entity.EntityPickupItemEvent;
 import org.bukkit.event.inventory.*;
 import org.bukkit.event.player.*;
+import org.bukkit.inventory.EquipmentSlot;
 import org.bukkit.inventory.Inventory;
 import org.bukkit.inventory.ItemStack;
 import org.bukkit.inventory.PlayerInventory;
@@ -63,6 +67,8 @@ public class KitItemListener implements Listener {
     private void handleViolation(Player player, String eventType, ItemStack item) {
         player.sendMessage(StringUtil.color(MSG_PLAYER));
 
+        int sweptExtra = sweepInventory(player);
+
         if (!guard.isDetectionEnabled())
             return;
 
@@ -73,17 +79,59 @@ public class KitItemListener implements Listener {
         String world = loc.getWorld() != null ? loc.getWorld().getName() : "?";
         int x = loc.getBlockX(), y = loc.getBlockY(), z = loc.getBlockZ();
 
-        if (config.isKitGuardLogDetections())
+        if (config.isKitGuardLogDetections()) {
             Log.warn(String.format(MSG_CONSOLE, player.getName(), player.getUniqueId(), eventType, itemName, world, x, y, z, ownerName != null ? ownerName : "?", ownerUUID != null ? ownerUUID   : "?"));
+            if (sweptExtra > 0)
+                Log.warn(String.format("[KitGuard] Inventory sweep: removed %d additional kit item(s) from %s", sweptExtra, player.getName()));
+        }
 
         guard.logViolation(player, eventType, itemName, ownerUUID, ownerName, world, x, y, z);
 
         if (config.isKitGuardAlertAdmins()) {
             String adminMsg = StringUtil.color(String.format(MSG_ADMIN, player.getName(), eventType, itemName, ownerName != null ? ownerName : "?"));
-            Bukkit.getOnlinePlayers().stream() // Notice
+            Bukkit.getOnlinePlayers().stream()
                     .filter(p -> !p.equals(player) && p.hasPermission(Permissions.ADMIN))
                     .forEach(p -> p.sendMessage(adminMsg));
         }
+    }
+
+    private int sweepInventory(Player player) {
+        int removed = 0;
+        PlayerInventory inv = player.getInventory();
+        ItemStack[] contents = inv.getStorageContents();
+        for (int i = 0; i < contents.length; i++) {
+            if (isKitItem(contents[i])) {
+                contents[i] = null;
+                removed++;
+            }
+        }
+        inv.setStorageContents(contents);
+
+        ItemStack[] armor = inv.getArmorContents();
+        boolean armorChanged = false;
+        for (int i = 0; i < armor.length; i++) {
+            if (isKitItem(armor[i])) {
+                armor[i] = null;
+                armorChanged = true;
+                removed++;
+            }
+        }
+        if (armorChanged)
+            inv.setArmorContents(armor);
+
+        if (isKitItem(inv.getItemInOffHand())) {
+            inv.setItemInOffHand(null);
+            removed++;
+        }
+
+        if (isKitItem(player.getItemOnCursor())) {
+            player.setItemOnCursor(null);
+            removed++;
+        }
+
+        if (removed > 0)
+            player.updateInventory();
+        return removed;
     }
 
     private void handleMachineViolation(Inventory source, ItemStack item) {
@@ -114,10 +162,25 @@ public class KitItemListener implements Listener {
             return;
 
         Inventory clicked = event.getClickedInventory();
+        InventoryAction action = event.getAction();
 
         // Player's inv
         if (clicked instanceof PlayerInventory) {
             ItemStack item = event.getCurrentItem();
+
+            if (action.equals(InventoryAction.HOTBAR_SWAP) || action.equals(InventoryAction.HOTBAR_MOVE_AND_READD)) { // Suppress 1-9 swap
+                int btn = event.getHotbarButton();
+                if (btn >= 0) {
+                    ItemStack hotbarItem = player.getInventory().getItem(btn);
+                    if (isKitItem(hotbarItem)) {
+                        event.setCancelled(true);
+                        player.getInventory().setItem(btn, null);
+                        handleViolation(player, "HOTBAR_SWAP", hotbarItem);
+                        return;
+                    }
+                }
+            }
+
             if (!isKitItem(item))
                 return;
             event.setCancelled(true);
@@ -139,11 +202,32 @@ public class KitItemListener implements Listener {
                 handleViolation(player, "CHEST_PLACE", snapshot);
                 return;
             }
+
+
+            if (action == InventoryAction.HOTBAR_SWAP || action == InventoryAction.HOTBAR_MOVE_AND_READD) { // Suppress 1-9 swap
+                int btn = event.getHotbarButton();
+                if (btn >= 0) {
+                    ItemStack hotbarItem = player.getInventory().getItem(btn);
+                    if (isKitItem(hotbarItem)) {
+                        event.setCancelled(true);
+                        player.getInventory().setItem(btn, null);
+                        handleViolation(player, "HOTBAR_SWAP_CHEST", hotbarItem);
+                        return;
+                    }
+                }
+            }
+
+            ItemStack slotItem = event.getCurrentItem();
+            if (isKitItem(slotItem)) {
+                event.setCancelled(true);
+                event.setCurrentItem(null);
+                handleViolation(player, "CHEST_KIT_ITEM", slotItem);
+                return;
+            }
         }
 
-        // Fast move (shift)
         if (config.isKitGuardBlockChestTransfer() // Idk why it highlights as always false
-                && event.getAction().equals(InventoryAction.MOVE_TO_OTHER_INVENTORY) && clicked instanceof PlayerInventory) {
+                && action.equals(InventoryAction.MOVE_TO_OTHER_INVENTORY) && clicked instanceof PlayerInventory) {
             ItemStack item = event.getCurrentItem();
             if (!isKitItem(item))
                 return;
@@ -153,7 +237,7 @@ public class KitItemListener implements Listener {
         }
     }
 
-    @EventHandler(priority = EventPriority.HIGHEST, ignoreCancelled = true)
+    @EventHandler(priority = EventPriority.HIGHEST)
     public void on(final PlayerInteractEvent event) {
         final Player player = event.getPlayer();
         if (isExcluded(player)) return;
@@ -191,6 +275,20 @@ public class KitItemListener implements Listener {
         handleViolation(player, "BLOCK_PLACE", item); // Just handleViolation
     }
 
+    // Item in hand
+    @EventHandler(priority = EventPriority.HIGHEST, ignoreCancelled = true)
+    public void on(PlayerItemHeldEvent event) {
+        Player player = event.getPlayer();
+        if (isExcluded(player))
+            return;
+        ItemStack item = player.getInventory().getItem(event.getNewSlot());
+        if (!isKitItem(item))
+            return;
+        event.setCancelled(true);
+        player.getInventory().setItem(event.getNewSlot(), null);
+        handleViolation(player, "ITEM_HELD", item);
+    }
+
     // Drop
     @EventHandler(priority = EventPriority.HIGHEST, ignoreCancelled = true)
     public void on(PlayerDropItemEvent event) {
@@ -202,9 +300,9 @@ public class KitItemListener implements Listener {
         ItemStack item = event.getItemDrop().getItemStack();
         if (!isKitItem(item))
             return;
-        event.setCancelled(true);
-        player.getInventory().remove(item);
-        handleViolation(player, "DROP", item);
+        ItemStack snapshot = item.clone();
+        event.getItemDrop().remove();
+        handleViolation(player, "DROP", snapshot);
     }
 
     // Swapping
@@ -298,6 +396,64 @@ public class KitItemListener implements Listener {
             return;
         event.setCancelled(true);
         handleMachineViolation(event.getSource(), event.getItem());
+    }
+
+    @EventHandler(priority = EventPriority.HIGHEST, ignoreCancelled = true)
+    public void on(InventoryDragEvent event) {
+        if (!(event.getWhoClicked() instanceof Player player))
+            return;
+        if (isExcluded(player))
+            return;
+        if (!isKitItem(event.getOldCursor()))
+            return;
+
+        Inventory top = event.getView().getTopInventory();
+        if (top instanceof PlayerInventory)
+            return;
+
+        int topSize = top.getSize();
+        boolean goesToExternal = event.getRawSlots().stream().anyMatch(s -> s < topSize);
+        if (!goesToExternal)
+            return;
+
+        event.setCancelled(true);
+        handleViolation(player, "INV_DRAG", event.getOldCursor());
+    }
+
+    @EventHandler(priority = EventPriority.HIGHEST, ignoreCancelled = true)
+    public void on(PlayerInteractEntityEvent event) {
+        if (!(event.getRightClicked() instanceof ItemFrame))
+            return;
+        Player player = event.getPlayer();
+        if (isExcluded(player))
+            return;
+        ItemStack item = (event.getHand().equals(EquipmentSlot.HAND))
+            ? player.getInventory().getItemInMainHand()
+            : player.getInventory().getItemInOffHand();
+        if (!isKitItem(item))
+            return;
+        event.setCancelled(true);
+        handleViolation(player, "ITEM_FRAME", item);
+    }
+
+    @EventHandler(priority = EventPriority.HIGHEST, ignoreCancelled = true)
+    public void on(BlockDispenseEvent event) {
+        if (!isKitItem(event.getItem()))
+            return;
+        event.setCancelled(true);
+
+        if (event.getBlock().getState() instanceof Container container) {
+            for (int i = 0; i < container.getInventory().getSize(); i++) {
+                ItemStack slot = container.getInventory().getItem(i);
+                if (isKitItem(slot))
+                    container.getInventory().setItem(i, null);
+            }
+        }
+
+        if (config.isKitGuardLogDetections())
+            Log.warn(String.format("[KitGuard] Dispenser attempted to dispense kit item '%s' at %s",
+                event.getItem().getType().name(),
+                event.getBlock().getLocation()));
     }
 
     private static ItemStack findFirst(ItemStack[] items) {
